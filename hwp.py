@@ -103,7 +103,11 @@ class hwp_parser():
                 pprint(result)
 
             if ".ps" in name.lower() or ".eps" in name.lower():
-                pass
+                print("[*] Extract eps file : {}".format(name.replace("/","_")))
+                data = self.extract_data(name)
+                f = open(name.replace("/","_"),"wb")
+                f.write(data)
+                f.close()
             
 if __name__ == '__main__':
     try:
