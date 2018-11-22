@@ -36,7 +36,7 @@ class hwp_parser():
         ]
 
     def FILETIME_to_datetime(self, value):
-        return (datetime(1601, 1, 1, 0, 0, 0) + timedelta(microseconds=value / 10)).strftime("%Y-%m-%d %H:%M:%S")
+        return (datetime(1601, 1, 1, 0, 0, 0) + timedelta(microseconds=value / 10)).strftime("%Y-%m-%d %H:%M:%S.%f")
 
     def HwpSummaryInfo_parse(self, data):
         info_data = []
@@ -146,8 +146,15 @@ if __name__ == '__main__':
     
     '''
     try:
-        a = hwp_parser(sys.argv[1])
-        a.run()
+        hwp = hwp_parser(sys.argv[1])
+        HwpSummaryInfo_data = hwp.extract_HwpSummaryInfo()
+        eps_data = hwp.extract_eps()
+        print(HwpSummaryInfo_data)
+
+        for name, data in eps_data:
+            f = open(filename + "_" + name, "wb")
+            f.write(data)
+            f.close()
 
     except OSError:
         print("[*] OSError !!")
