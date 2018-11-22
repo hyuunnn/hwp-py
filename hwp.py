@@ -6,13 +6,13 @@ import sys
 from io import BytesIO
 from datetime import datetime
 from datetime import timedelta
-from pprint import pprint
 
 class hwp_parser():
     def __init__(self, filename):
         self.filename = filename
         self.ole = olefile.OleFileIO(filename)
         self.ole_dir = ["/".join(i) for i in self.ole.listdir()]
+        # print("[*] ole dir : {}\n".format(self.ole_dir))
         ## https://github.com/mete0r/pyhwp/blob/82aa03eb3afe450eeb73714f2222765753ceaa6c/pyhwp/hwp5/msoleprops.py#L151
         self.SUMMARY_INFORMATION_PROPERTIES = [
             dict(id=0x02, name='PIDSI_TITLE', title='Title'),
@@ -35,18 +35,10 @@ class hwp_parser():
             dict(id=0x13, name='PIDSI_SECURITY', title='Security'),
         ]
 
-    def extract_data(self, name):
-        stream = self.ole.openstream(name)
-        data = stream.read()
-        if any(i in name for i in ("BinData", "BodyText", "Scripts", "DocInfo")):
-            return zlib.decompress(data,-15)
-        else:
-            return data
-
     def FILETIME_to_datetime(self, value):
-        return datetime(1601, 1, 1, 0, 0, 0) + timedelta(microseconds=value / 10)
+        return (datetime(1601, 1, 1, 0, 0, 0) + timedelta(microseconds=value / 10)).strftime("%Y-%m-%d %H:%M:%S")
 
-    def HwpSummaryInformation(self, data):
+    def HwpSummaryInfo_parse(self, data):
         info_data = []
         property_data = []
         return_data = []
@@ -93,27 +85,73 @@ class hwp_parser():
                     continue
 
         return return_data
+    
+    def extract_data(self, name):
+        stream = self.ole.openstream(name)
+        data = stream.read()
+        if any(i in name for i in ("BinData", "BodyText", "Scripts", "DocInfo")):
+            return zlib.decompress(data,-15)
+        else:
+            return data
 
-    def run(self):
-        #print("[*] ole dir : {}\n".format(self.ole_dir))
+    def extract_HwpSummaryInfo(self):
         for name in self.ole_dir:
             if "hwpsummaryinformation" in name.lower():
                 data = self.extract_data(name)
-                result = self.HwpSummaryInformation(data)
-                pprint(result)
+                HwpSummaryInfo = self.HwpSummaryInfo_parse(data)
+                return HwpSummaryInfo
+        return [{"data":None}] ## check AttributionError, TypeError
 
+    def extract_eps(self):
+        data = []
+        for name in self.ole_dir:
             if ".ps" in name.lower() or ".eps" in name.lower():
                 print("[*] Extract eps file : {}".format(name.replace("/","_")))
-                data = self.extract_data(name)
-                f = open(name.replace("/","_"),"wb")
-                f.write(data)
-                f.close()
+                data.append([name.replace("/","_"), self.extract_data(name)])
+        return data
             
 if __name__ == '__main__':
+    import csv
+    import hashlib
+    import os
+
+    filenames = os.listdir()
+
+    f = open('output.csv', 'w', encoding='euc-kr', newline='')
+    wr = csv.writer(f)
+    wr.writerow(["filename", "MD5", "Title", "Subject", "Author", "Keywords", "Comments", "Last saved by", "Revision Number", "Create Time/Data", "Last saved Time/Data", "Last Printed"])
+    for filename in filenames:
+        try:
+            hwp = hwp_parser(filename)
+            HwpSummaryInfo_data = hwp.extract_HwpSummaryInfo()
+            eps_data = hwp.extract_eps()
+            result = [filename, hashlib.md5(open(filename,"rb").read()).hexdigest()]
+                
+            for name, data in eps_data:
+                f = open(filename + "_" + name, "wb")
+                f.write(data)
+                f.close()
+
+            for Hwpinfo in HwpSummaryInfo_data:
+                print(Hwpinfo)
+                result.append(Hwpinfo['data'])
+            wr.writerow(result)
+            
+        except OSError:
+            wr.writerow([filename, "[*] OSError"])
+
+        except PermissionError:
+            wr.writerow([filename, "[*] PermissionError"])
+    f.close()
+    
+    '''
     try:
         a = hwp_parser(sys.argv[1])
         a.run()
+
     except OSError:
         print("[*] OSError !!")
-    except TypeError:
-        print("[*] TypeError !!")
+
+    except PermissionError:
+        print("[*] PermissionError !!")
+    '''
