@@ -7,6 +7,12 @@ from io import BytesIO
 from datetime import datetime
 from datetime import timedelta
 
+def u32(x):
+    return struct.unpack("<L", x)[0]
+
+def u64(x):
+    return struct.unpack("<Q", x)[0]
+
 class hwp_parser():
     def __init__(self, filename):
         self.filename = filename
@@ -44,15 +50,15 @@ class hwp_parser():
         return_data = []
 
         start_offset = 0x2c
-        data_size_offset = struct.unpack("<L",data[start_offset:start_offset+4])[0]
-        data_size = struct.unpack("<L",data[data_size_offset:data_size_offset+4])[0]
-        property_count = struct.unpack("<L",data[data_size_offset+4:data_size_offset+8])[0]
+        data_size_offset = u32(data[start_offset:start_offset+4])
+        data_size = u32(data[data_size_offset:data_size_offset+4])
+        property_count = u32(data[data_size_offset+4:data_size_offset+8])
 
         start_offset = data_size_offset + 8
         
         for i in range(property_count):
-            property_ID = struct.unpack("<L",data[start_offset:start_offset+4])[0]
-            unknown_data = struct.unpack("<L",data[start_offset+4:start_offset+8])[0]
+            property_ID = u32(data[start_offset:start_offset+4])
+            unknown_data = u32(data[start_offset+4:start_offset+8])
             property_data.append({"property_ID":property_ID, "unknown_data":unknown_data})
             start_offset = start_offset + 8
 
@@ -61,7 +67,7 @@ class hwp_parser():
         start_offset = 0x0
         for i in range(property_count):
             if data[start_offset:start_offset+4] == b"\x1f\x00\x00\x00":
-                size = struct.unpack("<L",data[start_offset+4:start_offset+8])[0] * 2
+                size = u32(data[start_offset+4:start_offset+8]) * 2
                 result = data[start_offset+8:start_offset+8+size]
                 info_data.append(result.decode("utf-16-le"))
 
@@ -70,7 +76,7 @@ class hwp_parser():
                     start_offset += 2
 
             elif data[start_offset:start_offset+4] == b"\x40\x00\x00\x00":
-                date = struct.unpack("<Q", data[start_offset+4:start_offset+12])[0]
+                date = u64(data[start_offset+4:start_offset+12])
                 start_offset = start_offset + 12
                 info_data.append(self.FILETIME_to_datetime(date))
 
