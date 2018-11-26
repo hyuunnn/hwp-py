@@ -42,7 +42,7 @@ class hwp_parser():
         ]
 
     def FILETIME_to_datetime(self, value):
-        return (datetime(1601, 1, 1, 0, 0, 0) + timedelta(microseconds=value / 10)).strftime("%Y-%m-%d %H:%M:%S.%f")
+        return (datetime(1601, 1, 1, 0, 0, 0) + timedelta(microseconds=value / 10)).strftime("%Y-%m-%d %H:%M:%S")
 
     def HwpSummaryInfo_parse(self, data):
         info_data = []
@@ -91,6 +91,13 @@ class hwp_parser():
                     continue
 
         return return_data
+
+    def FileHeader_parse(self, data):
+        ## https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/010-hwp-parser/HWPFileHeader.bt 참고
+        signature = data[:32]
+        version = u32(data[32:36])
+        flags = u32(data[36:40])
+        return {"signature":signature, "version":version, "flags":flags}
     
     def extract_data(self, name):
         stream = self.ole.openstream(name)
@@ -107,6 +114,14 @@ class hwp_parser():
                 HwpSummaryInfo = self.HwpSummaryInfo_parse(data)
                 return HwpSummaryInfo
         return [{"data":None}] ## check AttributionError, TypeError
+
+    def extract_FileHeader(self):
+        for name in self.ole_dir:
+            if "fileheader" in name.lower():
+                data = self.extract_data(name)
+                fileheader = self.FileHeader_parse(data)
+                return fileheader
+        return {"signature":None, "version":None, "flags":None}
 
     def extract_eps(self):
         data = []
@@ -125,12 +140,19 @@ if __name__ == '__main__':
 
     f = open('output.csv', 'w', encoding='euc-kr', newline='')
     wr = csv.writer(f)
-    wr.writerow(["filename", "MD5", "Title", "Subject", "Author", "Keywords", "Comments", "Last saved by", "Revision Number", "Create Time/Data", "Last saved Time/Data", "Last Printed"])
+    wr.writerow(["filename", "MD5", "Title", "Subject", "Author", "Keywords", "Comments", "Last saved by", "Revision Number", "Create Time/Data", "Last saved Time/Data", "Last Printed", "HWPHeaderVersion", "HWPHeaderFlags"])
     for filename in filenames:
         try:
             hwp = hwp_parser(filename)
-            HwpSummaryInfo_data = hwp.extract_HwpSummaryInfo()
-            eps_data = hwp.extract_eps()
+        except:
+            print("[*] HWP File Error !!")
+            continue
+
+        HwpSummaryInfo_data = hwp.extract_HwpSummaryInfo()
+        FileHeader_data = hwp.extract_FileHeader()
+        eps_data = hwp.extract_eps()
+
+        try:
             result = [filename, hashlib.md5(open(filename,"rb").read()).hexdigest()]
                 
             for name, data in eps_data:
@@ -141,6 +163,9 @@ if __name__ == '__main__':
             for Hwpinfo in HwpSummaryInfo_data:
                 print(Hwpinfo)
                 result.append(Hwpinfo['data'])
+
+            result.append(FileHeader_data['version'])
+            result.append(FileHeader_data['flags'])
             wr.writerow(result)
             
         except OSError:
