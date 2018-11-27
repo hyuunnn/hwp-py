@@ -136,14 +136,14 @@ if __name__ == '__main__':
     import hashlib
     import os
 
-    filenames = os.listdir()
+    filenames = os.listdir(sys.argv[1])
 
     f = open('output.csv', 'w', encoding='euc-kr', newline='')
     wr = csv.writer(f)
     wr.writerow(["filename", "MD5", "Title", "Subject", "Author", "Keywords", "Comments", "Last saved by", "Revision Number", "Create Time/Data", "Last saved Time/Data", "Last Printed", "HWPHeaderVersion", "HWPHeaderFlags"])
     for filename in filenames:
         try:
-            hwp = hwp_parser(filename)
+            hwp = hwp_parser(sys.argv[1] + filename)
         except:
             print("[*] HWP File Error !!")
             continue
