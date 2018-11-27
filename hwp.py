@@ -153,7 +153,7 @@ if __name__ == '__main__':
         eps_data = hwp.extract_eps()
 
         try:
-            result = [filename, hashlib.md5(open(filename,"rb").read()).hexdigest()]
+            result = [filename, hashlib.md5(open(sys.argv[1] + filename,"rb").read()).hexdigest()]
                 
             for name, data in eps_data:
                 f = open(filename + "_" + name, "wb")
