@@ -113,7 +113,7 @@ class hwp_parser():
                 data = self.extract_data(name)
                 HwpSummaryInfo = self.HwpSummaryInfo_parse(data)
                 return HwpSummaryInfo
-        return [{"data":None}] ## check AttributionError, TypeError
+        return None ## check AttributionError, TypeError
 
     def extract_FileHeader(self):
         for name in self.ole_dir:
@@ -121,7 +121,7 @@ class hwp_parser():
                 data = self.extract_data(name)
                 fileheader = self.FileHeader_parse(data)
                 return fileheader
-        return {"signature":None, "version":None, "flags":None}
+        return None
 
     def extract_eps(self):
         data = []
@@ -174,22 +174,3 @@ if __name__ == '__main__':
         except PermissionError:
             wr.writerow([filename, "[*] PermissionError"])
     f.close()
-    
-    '''
-    try:
-        hwp = hwp_parser(sys.argv[1])
-        HwpSummaryInfo_data = hwp.extract_HwpSummaryInfo()
-        eps_data = hwp.extract_eps()
-        print(HwpSummaryInfo_data)
-
-        for name, data in eps_data:
-            f = open(filename + "_" + name, "wb")
-            f.write(data)
-            f.close()
-
-    except OSError:
-        print("[*] OSError !!")
-
-    except PermissionError:
-        print("[*] PermissionError !!")
-    '''
