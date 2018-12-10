@@ -160,12 +160,17 @@ if __name__ == '__main__':
                 f.write(data)
                 f.close()
 
-            for Hwpinfo in HwpSummaryInfo_data:
-                print(Hwpinfo)
-                result.append(Hwpinfo['data'])
+            if HwpSummaryInfo_data != None:
+                for Hwpinfo in HwpSummaryInfo_data:
+                    print(Hwpinfo)
+                    result.append(Hwpinfo['data'])
+            else:
+                for i in range(10):
+                    result.append("")
 
-            result.append(FileHeader_data['version'])
-            result.append(FileHeader_data['flags'])
+            if FileHeader_data != None:
+                result.append(FileHeader_data['version'])
+                result.append(FileHeader_data['flags'])
             wr.writerow(result)
             
         except OSError:
