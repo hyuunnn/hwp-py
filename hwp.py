@@ -148,10 +148,21 @@ if __name__ == '__main__':
     wr = csv.writer(f)
     wr.writerow(["filename", "MD5", "Title", "Subject", "Author", "Keywords", "Comments", "Last saved by", "Revision Number", "Create Time/Data", "Last saved Time/Data", "Last Printed", "HWPHeaderVersion", "HWPHeaderFlags"])
     for filename in filenames:
+        sample = open(sys.argv[1] + filename, "rb")
+        data = sample.read()
+        sample.close()
+        md5 = hashlib.md5(data).hexdigest()
+
+        if not data[:4] == b"\xd0\xcf\x11\xe0":
+            print("[*] This is not a HWPv5 File.")
+            wr.writerow([filename, md5, "[*] This is not a HWPv5 File."])
+            continue
+        
         try:
             hwp = hwp_parser(sys.argv[1] + filename)
         except:
             print("[*] HWP File Error !!")
+            wr.writerow([filename, md5, "[*] HWP File Error !!"])
             continue
 
         HwpSummaryInfo_data = hwp.extract_HwpSummaryInfo()
@@ -159,7 +170,7 @@ if __name__ == '__main__':
         eps_data = hwp.extract_eps()
 
         try:
-            result = [filename, hashlib.md5(open(sys.argv[1] + filename,"rb").read()).hexdigest()]
+            result = [filename, md5]
                 
             for name, data in eps_data:
                 f = open(filename + "_" + name, "wb")
